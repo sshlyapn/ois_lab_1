@@ -1,6 +1,26 @@
 from random import randint
 
 
+def get_next(curr_seq, blocks, used, results):
+    tried_blocks = list()
+    size = len(blocks)
+    for i in range(size):
+        if i in used or i in tried_blocks:
+            continue
+        if is_block_connectable(curr_seq[len(curr_seq) - 1], blocks[i]):
+            curr_seq.append(i)
+            local_used = used
+            local_used.append(i)
+            tried_blocks.append(i)
+            is_final = get_next(curr_seq, blocks, local_used, results)
+            if is_final:
+                results.append(curr_seq)
+            return False
+        else:
+            tried_blocks.append(i)
+    return True
+
+
 def is_block_connectable(prev, next):
     if len(prev.out_access_points) != len(next.in_access_points):
         return False
