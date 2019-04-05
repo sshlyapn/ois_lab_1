@@ -1,24 +1,82 @@
 from random import randint
 
 
+class Generator:
+    def __init__(self, num_of_blocks=5, consistently=True):
+        self.num_of_blocks = num_of_blocks
+        self.consistently = consistently
+        self.blocks = list()
+
+    def generate_random_data(self):
+        properties = ParamProperties(randint(0, 2), randint(0, 2))
+        return properties
+
+    def generate_access_points(self, type_in_out, num_of_access_points):
+        access_points_list = list()
+        for i in range(num_of_access_points):
+            access_point = AccessPoint()
+            if (type_in_out):
+                access_point.set_type(1)
+            else:
+                access_point.set_type(0)
+            access_point.set_params(self.generate_params_list(randint(1, 4)))
+            access_points_list.append(access_point)
+        return access_points_list
+
+    def generate_params_list(self, num_of_params):
+        params_list = list()
+        for i in range(num_of_params):
+            params_list.append(self.generate_random_data())
+        return params_list
+
+    def generate_initial_scheme(self):
+        first_block = Block()
+        first_block.set_in(self.generate_access_points(0, randint(1, 3)))
+        first_block.set_out(self.generate_access_points(1, randint(1, 3)))
+        self.blocks.append(first_block)
+        for i in range(self.num_of_blocks - 1):
+            block = Block()
+            if self.consistently:
+                block.set_in(self.blocks[i].get_out_list())
+            else:
+                block.set_in(self.generate_access_points(1, randint(1, 3)))
+            block.set_out(self.generate_access_points(1, randint(1, 3)))
+            self.blocks.append(block)
+
+    def generate(self):
+        self.generate_initial_scheme()
+
+    def get_blocks(self):
+        return self.blocks
+
 def get_next(curr_seq, blocks, used, results):
-    tried_blocks = list()
+    local_seq = curr_seq.copy()
+    local_used_idxs = used.copy()
+    tried_blocks_idxs = list()
     size = len(blocks)
     for i in range(size):
-        if i in used or i in tried_blocks:
+        if i in local_used_idxs or i in tried_blocks_idxs:
             continue
-        if is_block_connectable(curr_seq[len(curr_seq) - 1], blocks[i]):
-            curr_seq.append(i)
-            local_used = used
-            local_used.append(i)
-            tried_blocks.append(i)
-            is_final = get_next(curr_seq, blocks, local_used, results)
-            if is_final:
-                results.append(curr_seq)
-            return False
+
+        tried_blocks_idxs.append(i)
+
+        if len(local_seq) == 0:
+            local_seq.append(blocks[i])
+            local_used_idxs.append(i)
+            get_next(local_seq, blocks, local_used_idxs, results)
+            local_seq = curr_seq.copy()
+            continue
+
+        if is_block_connectable(local_seq[len(local_seq) - 1], blocks[i]):
+            local_seq.append(blocks[i])
+            local_used_idxs.append(i)
+            get_next(local_seq, blocks, local_used_idxs, results)
+            local_seq = curr_seq.copy()
+            continue
         else:
-            tried_blocks.append(i)
-    return True
+            if len(local_seq) != 0:
+                results.append(local_seq)
+    results.append(local_seq)
 
 
 def is_block_connectable(prev, next):
@@ -67,31 +125,6 @@ def find_or_add(domains, params, in_out_type, access_point_id):
     domain.access_points_list_ids.append(access_point_id)
     domains.append(domain)
     pass
-
-
-def generate_random_data():
-    properties = ParamProperties(randint(0, 2), randint(0, 2))
-    return properties
-
-
-def generate_access_points(type_in_out, num_of_access_points):
-    access_points_list = list()
-    for i in range(num_of_access_points):
-        access_point = AccessPoint()
-        if (type_in_out):
-            access_point.set_type(1)
-        else:
-            access_point.set_type(0)
-        access_point.set_params(generate_params_list(randint(1, 4)))
-        access_points_list.append(access_point)
-    return access_points_list
-
-
-def generate_params_list(num_of_params):
-    params_list = list()
-    for i in range(num_of_params):
-        params_list.append(generate_random_data())
-    return params_list
 
 
 class Block:
@@ -156,6 +189,7 @@ class ParamProperties:
         else:
             return False
 
+
 class Domain(ParamProperties):
     def __init__(self, type, restriction, in_out_type):
         super().__init__(type, restriction)
@@ -173,24 +207,15 @@ class Domain(ParamProperties):
         self.access_points_list_ids.append(id)
 
 
-def generate_initial_scheme(num_of_blocks):
-    blocks = list()
-    first_block = Block()
-    first_block.set_in(generate_access_points(0, randint(1, 3)))
-    first_block.set_out(generate_access_points(1, randint(1, 3)))
-    blocks.append(first_block)
-    for i in range(num_of_blocks - 1):
-        block = Block()
-        block.set_in(blocks[i].get_out_list())
-        block.set_out(generate_access_points(1, randint(1, 3)))
-        blocks.append(block)
-    return blocks
-
 if __name__ == "__main__":
-    blocks = generate_initial_scheme(20)
+    generator = Generator(3, False)
+    generator.generate()
+    blocks = generator.get_blocks()
 
     domain_list = get_domain_list(blocks)
 
-    #recursive here
+    results = list()
+    get_next(list(), blocks, list(), results)
+    # recursive here
 
     pass
