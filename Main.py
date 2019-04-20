@@ -1,6 +1,5 @@
 from random import randint
 
-
 class Generator:
     def __init__(self, num_of_blocks=5, consistently=True):
         self.num_of_blocks = num_of_blocks
@@ -49,34 +48,39 @@ class Generator:
     def get_blocks(self):
         return self.blocks
 
-def get_next(curr_seq, blocks, used, results):
-    local_seq = curr_seq.copy()
-    local_used_idxs = used.copy()
-    tried_blocks_idxs = list()
-    size = len(blocks)
-    for i in range(size):
-        if i in local_used_idxs or i in tried_blocks_idxs:
+
+def add_if_not_exist(seq, results):
+    if len(seq) == 0:
+        return False
+    for res in results:
+        if len(res) == len(seq):
+            for i in range(len(res)):
+                if seq[i] == res[i]:
+                    return False
+    results.append(seq)
+    return True
+
+
+def get_next(curr_seq, blocks, results):
+    tried_blocks = list()
+
+    for i in range(len(blocks)):
+        if blocks[i] in curr_seq or blocks[i] in tried_blocks:
             continue
 
-        tried_blocks_idxs.append(i)
-
-        if len(local_seq) == 0:
-            local_seq.append(blocks[i])
-            local_used_idxs.append(i)
-            get_next(local_seq, blocks, local_used_idxs, results)
-            local_seq = curr_seq.copy()
+        curr_seq_local = curr_seq.copy()
+        tried_blocks.append(blocks[i])
+        if len(curr_seq_local) == 0:
+            curr_seq_local.append(blocks[i])
+            get_next(curr_seq_local, blocks, results)
             continue
 
-        if is_block_connectable(local_seq[len(local_seq) - 1], blocks[i]):
-            local_seq.append(blocks[i])
-            local_used_idxs.append(i)
-            get_next(local_seq, blocks, local_used_idxs, results)
-            local_seq = curr_seq.copy()
+        if is_block_connectable(curr_seq_local[len(curr_seq_local) - 1], blocks[i]):
+            curr_seq_local.append(blocks[i])
+            get_next(curr_seq_local, blocks, results)
             continue
-        else:
-            if len(local_seq) != 0:
-                results.append(local_seq)
-    results.append(local_seq)
+
+    add_if_not_exist(curr_seq, results)
 
 
 def is_block_connectable(prev, next):
@@ -87,11 +91,14 @@ def is_block_connectable(prev, next):
         prev_block_params = prev.out_access_points[i].params
         next_block_params = next.in_access_points[i].params
 
+        if len(prev_block_params) != len(next_block_params):
+            return False
+
         for j in range(len(prev_block_params)):
             if not prev_block_params[j].is_equal(next_block_params[j]):
                 return False
 
-        return True
+    return True
 
 
 def get_domain_list(blocks):
@@ -208,14 +215,13 @@ class Domain(ParamProperties):
 
 
 if __name__ == "__main__":
-    generator = Generator(3, False)
+    generator = Generator(5, consistently=True)
     generator.generate()
     blocks = generator.get_blocks()
 
     domain_list = get_domain_list(blocks)
 
     results = list()
-    get_next(list(), blocks, list(), results)
-    # recursive here
-
+    get_next(list(), blocks, results)
+    results.sort(key=len, reverse=True)
     pass
