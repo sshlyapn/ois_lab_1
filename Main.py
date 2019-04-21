@@ -1,4 +1,7 @@
 from random import randint
+from multiprocessing.dummy import Pool as ThreadPool
+from functools import partial
+
 
 class Generator:
     def __init__(self, num_of_blocks=5, consistently=True):
@@ -215,13 +218,18 @@ class Domain(ParamProperties):
 
 
 if __name__ == "__main__":
-    generator = Generator(5, consistently=True)
+    generator = Generator(800, consistently=False)
     generator.generate()
     blocks = generator.get_blocks()
 
     domain_list = get_domain_list(blocks)
 
     results = list()
-    get_next(list(), blocks, results)
+    func = partial(get_next, blocks=blocks, results=results)
+    pool = ThreadPool(8)
+    d = [[x] for x in blocks]
+    pool.map(func, d)
+
+    # get_next(list(), blocks, results)
     results.sort(key=len, reverse=True)
     pass
