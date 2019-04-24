@@ -73,12 +73,8 @@ def get_next(curr_seq, blocks, results):
 
         curr_seq_local = curr_seq.copy()
         tried_blocks.append(blocks[i])
-        if len(curr_seq_local) == 0:
-            curr_seq_local.append(blocks[i])
-            get_next(curr_seq_local, blocks, results)
-            continue
 
-        if is_block_connectable(curr_seq_local[len(curr_seq_local) - 1], blocks[i]):
+        if is_block_connectable(curr_seq_local[len(curr_seq_local) - 1], blocks[i]) or len(curr_seq_local) == 1:
             curr_seq_local.append(blocks[i])
             get_next(curr_seq_local, blocks, results)
             continue
@@ -226,7 +222,7 @@ if __name__ == "__main__":
 
     results = list()
     func = partial(get_next, blocks=blocks, results=results)
-    pool = ThreadPool(8)
+    pool = ThreadPool(1)
     d = [[x] for x in blocks]
     pool.map(func, d)
 
